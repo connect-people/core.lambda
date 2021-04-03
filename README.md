@@ -1,1 +1,1 @@
-# core.labmda
+# core.lambda
