@@ -1,0 +1,17 @@
+{
+    "dev": {
+        "app_function": "run.app",
+        "aws_region": "ap-northeast-2",
+        "profile_name": "default",
+        "project_name": "cp-core-lambda",
+        "runtime": "python3.8",
+        "s3_bucket": "zappa-connect-people",
+        "aws_environment_variables" :
+        {
+            "MYSQL_USER": "root",
+            "MYSQL_PW" : "leeoeol312!!",
+            "MYSQL_URL" : "db-connect-people.cluster-cgyszlfeotqz.ap-northeast-2.rds.amazonaws.com:3306",
+            "MYSQL_DB" :"DB_CORE"
+        }
+    }
+}
