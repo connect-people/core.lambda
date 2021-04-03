@@ -2,7 +2,6 @@ from .. import db
 from ..model.notice import Notice
 from datetime import datetime
 from sqlalchemy import desc
-from flask_sqlalchemy import Pagination
 
 
 def save_new_notice(data) -> (dict, int):
@@ -21,12 +20,17 @@ def save_new_notice(data) -> (dict, int):
     return response_object, 200
 
 
-def get_all_notices() -> list:
-    return Notice.query.order_by(desc(Notice.id)).all().Pagination(1, 20, error_out=False)
+def get_all_notices(page=1, per_page=20) -> list:
+    # return Notice.query.order_by(desc(Notice.id)).all()
+    return Notice.query.order_by(desc(Notice.id)).paginate(page=page, per_page=per_page)
 
 
 def get_by_notice_id(notice_id) -> dict:
     return Notice.query.filter_by(id=notice_id).first()
+
+
+def delete_by_notice_id(notice_id):
+    return Notice.query.filter_by(id=notice_id).delete()
 
 
 def save(data):
