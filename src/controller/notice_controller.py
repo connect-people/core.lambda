@@ -11,6 +11,7 @@ from ..service.notice_service import (
 
 api = NoticeDto.api
 _notice_load = NoticeDto.notice
+_notice_post = NoticeDto.notice_post
 _notice_save = NoticeDto.notice_save
 _notice_delete = NoticeDto.notice_delete
 
@@ -45,7 +46,7 @@ class NoticeList(Resource):
 @api.response(404, 'notice not found')
 class Notice(Resource):
     @api.doc('공지사항 상세')
-    @api.marshal_with(_notice_load)
+    @api.marshal_with(_notice_post)
     def get(self, notice_id) -> dict:
         """공지사항 상세"""
         notice = get_by_notice_id(notice_id)
