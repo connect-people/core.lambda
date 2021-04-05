@@ -13,11 +13,7 @@ def save_new_notice(data) -> (dict, int):
         created=data["created"] if 'created' in data else "{:%Y-%m-%d %H:%I:%S}".format(datetime.now()),
     )
     save(new_notice)
-    response_object = {
-        'code': 1,
-        'message': 'ok'
-    }
-    return response_object, 200
+    return {"notice_id": new_notice.id}, 200
 
 
 def get_all_notices(page=1, per_page=20) -> list:

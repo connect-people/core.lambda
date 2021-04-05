@@ -25,7 +25,9 @@ class NoticeDto:
     notice_save = api.model('notice_save', {
         'title': fields.String(required=True, description='타이틀'),
         'content': fields.String(required=True, description='내용'),
-        'member_id': fields.Integer(required=True, description='사용자 고유 번호')
+        'member_id': fields.Integer(required=True, description='사용자 고유 번호'),
+        'member_name': fields.String(required=True, description='사용자 이름'),
+        'login_id': fields.String(required=True, description='사용자 아이디'),
     })
 
     notice_delete = api.model('notice_delete', {
