@@ -47,3 +47,20 @@ class BoardDto:
         'majorCategoryID': fields.Integer(required=True, description='대카테고리 ID'),
         'created': fields.String(requried=False, description='등록일')
     })
+
+
+class MemberDto:
+    api = Namespace('member', description='사용자')
+    member_signup = api.model('member_signup', {
+        'login_id': fields.String(required=True, description='로그인아이디'),
+        'password': fields.String(required=True, description='패스워드'),
+        'name': fields.String(required=True, description='이름'),
+        'phone': fields.String(required=False, description='휴대폰번호'),
+        'is_auth': fields.Integer(required=False, description='휴대폰 인증여부'),
+        'created': fields.String(requried=False, description='등록일')
+    })
+    member_signin = api.model('member_signin', {
+        'login_id': fields.String(required=True, description='로그인아이디'),
+        'password': fields.String(required=True, description='패스워드')
+    })
+
