@@ -17,8 +17,8 @@ def create_app(config_class=Config):
         db.init_app(app)
         register_blueprints(app)
 
-    @app.route("/", methods=["GET"])
-    def root():
+    @app.route("/", methods=["GET", "POST"])
+    def lambda_handler():
         return "ok", 200
 
     return app

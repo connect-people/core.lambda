@@ -29,7 +29,7 @@ class NoticeList(Resource):
         """공지사항 전체 리스트"""
         args = arguments.parse_args(request)
         page = args.get('page', 1)
-        per_page = args.get('per_page', 20)
+        per_page = args.get('per_page', 200)
         return get_all_notices(page, per_page)
 
     @api.response(200, 'ok')
@@ -47,7 +47,7 @@ class NoticeList(Resource):
 class Notice(Resource):
     @api.doc('공지사항 상세')
     @api.marshal_with(_notice_post)
-    def get(self, notice_id) -> dict:
+    def get(self, notice_id):
         """공지사항 상세"""
         notice = get_by_notice_id(notice_id)
         if not notice:

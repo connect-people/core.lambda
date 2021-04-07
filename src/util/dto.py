@@ -63,4 +63,21 @@ class MemberDto:
         'login_id': fields.String(required=True, description='로그인아이디'),
         'password': fields.String(required=True, description='패스워드')
     })
+    result = api.model('result', {
+        'code': fields.Integer(description='code'),
+        'message': fields.String(description='message'),
+    })
+    data = api.model('data', {
+        'id': fields.Integer(required=False, description='사용자 고유 번호'),
+        'login_id': fields.String(required=False, description='로그인아이디'),
+        'password': fields.String(required=False, description='패스워드'),
+        'name': fields.String(required=False, description='이름'),
+        'phone': fields.String(required=False, description='휴대폰번호'),
+        'is_auth': fields.Integer(required=False, description='휴대폰 인증여부'),
+        'created': fields.String(requried=False, description='등록일')
+    })
+    me = api.model('me', {
+        'result': fields.Nested(result),
+        'data': fields.Nested(data)
+    })
 
