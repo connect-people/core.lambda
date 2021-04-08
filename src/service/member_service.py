@@ -1,7 +1,9 @@
 from .. import db
+from .. import constants
 from ..model.member import Member
 from ..model.token import Token
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+import logging as log
 
 
 def check_duplicate_by_login_id(login_id) -> bool:
@@ -11,7 +13,7 @@ def check_duplicate_by_login_id(login_id) -> bool:
         return True
 
     except Exception as e:
-        print(str(e))
+        log.error(str(e))
         return False
 
     finally:
@@ -30,7 +32,7 @@ def signup(data) -> int:
         return new_member.id
 
     except Exception as e:
-        print(str(e))
+        log.error(str(e))
 
     finally:
         db.session.close()
@@ -44,7 +46,7 @@ def signin(data) -> Member:
         ).first()
 
     except Exception as e:
-        print(str(e))
+        log.error(str(e))
 
     finally:
         db.session.close()
@@ -52,7 +54,7 @@ def signin(data) -> Member:
 
 def token_generate_by_member_id(member_id) -> str:
     try:
-        token = Serializer('cplab', expires_in=0).dumps({'member_id': member_id})
+        token = Serializer(constants.JWT_SECRET_KEY, expires_in=0).dumps({'member_id': member_id})
         new_token = Token(
             member_id=member_id,
             token=token
@@ -61,7 +63,7 @@ def token_generate_by_member_id(member_id) -> str:
         return new_token.token
 
     except Exception as e:
-        print(str(e))
+        log.error(str(e))
 
     finally:
         db.session.close()
@@ -72,7 +74,7 @@ def get_token_by_member_id(member_id) -> Token:
         return Token.query.filter_by(member_id=member_id).first().token
 
     except Exception as e:
-        print(str(e))
+        log.error(str(e))
 
     finally:
         db.session.close()
@@ -85,7 +87,7 @@ def get_member_by_token(token) -> Member:
         return Member.query.filter_by(id=int(member_id)).first()
 
     except Exception as e:
-        print(str(e))
+        log.error(str(e))
 
     finally:
         db.session.close()

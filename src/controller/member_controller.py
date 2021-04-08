@@ -1,6 +1,7 @@
 from flask import request
 from flask_restplus import Resource
 
+from ..util.response import Response
 from ..util.dto import MemberDto
 from ..service.member_service import (
     signup,
@@ -15,6 +16,8 @@ api = MemberDto.api
 _member_signup = MemberDto.member_signup
 _member_signin = MemberDto.member_signin
 _me = MemberDto.me
+resp = Response()
+
 
 @api.route('/signup')
 class Signup(Resource):
@@ -34,10 +37,7 @@ class Signup(Resource):
         member_id = signup(data=data)
         new_token = token_generate_by_member_id(member_id)
         return {
-            'result': {
-                'code': 1,
-                'message': 'ok'
-            },
+            'result': {'code': 1, 'message': 'ok'},
             'data': {
                 'token': new_token
             },
@@ -60,10 +60,7 @@ class Signin(Resource):
             }, 401
         token = get_token_by_member_id(member.id)
         return {
-            'result': {
-                'code': 1,
-                'message': 'ok'
-            },
+            'result': {'code': 1, 'message': 'ok'},
             'data': {
                 'token': token
             },
@@ -82,10 +79,8 @@ class Me(Resource):
         """내 정보 조회"""
         token = request.headers.get('token')
         if not token:
-            return {
-                'error': '로그인이 필요합니다'
-            }, 401
-        return {
-            'result': {'code': 1, 'message': 'ok'},
-            'data': get_member_by_token(token),
-        }, 200
+            return {'error': '로그인이 필요합니다'}, 401
+        resp.set_result(code=200, message='ok')
+        resp.set_contents(data=get_member_by_token(token))
+        resp.set_page(page=1, per_page=20, total=100)
+        return resp.send()
