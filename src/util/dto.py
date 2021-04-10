@@ -37,15 +37,43 @@ class NoticeDto:
 
 class BoardDto:
     api = Namespace('board', description='게시판')
-    board = api.model('board', {
+    result = api.model('result', {
+        'code': fields.Integer(description='code'),
+        'message': fields.String(description='message'),
+    })
+    pagination = api.model('pagination', {
+        'page': fields.Integer(description='Number of this page of results'),
+        'pages': fields.Integer(description='Total number of pages of results'),
+        'per_page': fields.Integer(description='Number of items per page of results'),
+        'total': fields.Integer(description='Total number of results'),
+    })
+    board_data = api.model('board_data', {
         'ID': fields.Integer(required=True, description='ID'),
         'brandName': fields.String(required=True, description='브랜드명'),
         'memberID': fields.Integer(required=True, description='회원번호'),
         'title': fields.String(required=True, description='타이틀'),
         'subTitle': fields.String(required=True, description='서브타이틀'),
         'content': fields.String(required=True, description='내용'),
-        'majorCategoryID': fields.Integer(required=True, description='대카테고리 ID'),
+        'majorCategoryName': fields.String(required=True, description='대카테고리명'),
+        'imageUrl': fields.String(required=True, description='이미지 URL'),
         'created': fields.String(requried=False, description='등록일')
+    })
+    board_detail_data = api.model('board_detail_data', {
+        'ID': fields.Integer(required=True, description='ID'),
+        'brandName': fields.String(required=True, description='브랜드명'),
+        'memberID': fields.Integer(required=True, description='회원번호'),
+        'title': fields.String(required=True, description='타이틀'),
+        'subTitle': fields.String(required=True, description='서브타이틀'),
+        'content': fields.String(required=True, description='내용'),
+        'imageUrls': fields.List(fields.String),
+        'created': fields.String(requried=False, description='등록일')
+    })
+    board = api.inherit('board', pagination, {
+        'items': fields.List(fields.Nested(board_data))
+    })
+    board_detail = api.model('board_detail_data', {
+        'result': fields.Nested(result),
+        'data': fields.Nested(board_detail_data)
     })
 
 

@@ -8,7 +8,7 @@ class Board(db.Model):
 
     ID = db.Column(db.Integer, primary_key=True, autoincrement=True)
     brandName = db.Column(db.String(100))
-    memberID = db.Column(db.Integer)
+    memberID = db.Column(db.BIGINT)
     title = db.Column(db.String(100))
     subTitle = db.Column(db.String(100))
     content = db.Column(db.String(64000))

@@ -4,6 +4,7 @@ class Response:
     def __init__(self):
         self.code = 200
         self.message = None
+        self.response = {}
         self.result = {}
         self.data = {}
         self.page = 1
@@ -20,6 +21,9 @@ class Response:
     def set_contents(self, data):
         self.data = data
 
+    def set_items(self, items):
+        self.items = items
+
     def set_page(self, page=1, per_page=20, pages=1, total=0):
         self.page = page
         self.per_page = per_page
@@ -27,11 +31,15 @@ class Response:
         self.total = total
 
     def send(self) -> (dict, int):
-        return {
-            'result': self.result,
-            'data': self.data,
-            'page': self.page,
-            'pages': self.pages,
-            'per_page': self.per_page,
-            'total': self.total
-        }, self.code
+        self.response = {
+            'result': self.result
+        }
+        if self.data:
+            self.response['data'] = self.data
+        if self.page and self.per_page and self.pages and self.total:
+            self.response['page'] = self.page
+            self.response['pages'] = self.pages
+            self.response['per_page'] = self.per_page
+            self.response['total'] = self.total
+
+        return self.response, self.code

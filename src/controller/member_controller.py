@@ -82,5 +82,4 @@ class Me(Resource):
             return {'error': '로그인이 필요합니다'}, 401
         resp.set_result(code=200, message='ok')
         resp.set_contents(data=get_member_by_token(token))
-        resp.set_page(page=1, per_page=20, total=100)
         return resp.send()
