@@ -21,6 +21,10 @@ MYSQL_DB = get_env_variable("MYSQL_DB") if get_env_variable("MYSQL_DB") is not N
 # DB
 DB_URL = create_db_url(MYSQL_USER, MYSQL_PW, MYSQL_URL, MYSQL_DB)
 
+# S3
+S3_HOST = "https://connect-people.s3.ap-northeast-2.amazonaws.com"
+S3_BUCKET = "connect-people"
+
 
 class Config(object):
     # ...

@@ -68,11 +68,19 @@ class BoardDto:
         'imageUrls': fields.List(fields.String),
         'created': fields.String(requried=False, description='등록일')
     })
+    board_save = api.model('board_save', {
+        'brandName': fields.String(required=True, description='브랜드명'),
+        'title': fields.String(required=True, description='타이틀'),
+        'subTitle': fields.String(required=True, description='서브타이틀'),
+        'content': fields.String(required=True, description='내용'),
+        'imageUrls': fields.List(fields.String),
+        'categoryIDs': fields.List(fields.Integer),
+    })
     board = api.inherit('board', pagination, {
         'items': fields.List(fields.Nested(board_data))
     })
     board_detail = api.model('board_detail_data', {
-        'result': fields.Nested(result),
+        # 'result': fields.Nested(result),
         'data': fields.Nested(board_detail_data)
     })
 

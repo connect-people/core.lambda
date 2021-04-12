@@ -1,24 +1,126 @@
+import logging
+import boto3
+import os
+
+from datetime import datetime
+from werkzeug.utils import secure_filename
+from sqlalchemy.sql import text
+from urllib.parse import urlparse, ParseResult
+
 from .. import db
-from ..model.board import Board
-from sqlalchemy.sql import desc, text
-import logging as log
+from ..model.board import Board, BoardImage
+from ..model.category import CategoryScope
+from ..config import S3_HOST, S3_BUCKET
 
 
-def save_new_board(data) -> int:
+def upload_image(file):
+    filename = secure_filename(file.filename)
+    temp_path = f'temp/{"{:%Y%m%d}".format(datetime.now())}/{filename}'
+
+    logging.debug(temp_path)
+
+    s3 = boto3.client('s3')
+    s3.upload_fileobj(
+        file,
+        S3_BUCKET,
+        temp_path,
+        ExtraArgs={
+            'ACL': 'public-read',
+            'ContentType': 'application/octet-stream',
+            'ServerSideEncryption': 'AES256'
+        }
+    )
+    return f'{S3_HOST}/{temp_path}'
+
+
+def resize_image(image_path, resized_path):
+    app_env = os.environ.get('APP_ENV')
+    if app_env == "local":
+        import PIL
+        with PIL.Image.open(image_path) as image:
+            image.thumbnail(tuple(x / 2 for x in image.size), PIL.Image.ANTIALIAS)
+            image.save(resized_path)
+    else:
+        from PIL import Image, ExifTags
+        with Image.open(image_path) as image:
+            image.thumbnail(tuple(x / 2 for x in image.size), Image.ANTIALIAS)
+            for orientation in ExifTags.TAGS.keys():
+                if ExifTags.TAGS[orientation] == 'Orientation':
+                    break
+            exif = image._getexif()
+            if exif[orientation] == 3:
+                image = image.rotate(180, expand=True)
+            elif exif[orientation] == 6:
+                image = image.rotate(270, expand=True)
+            elif exif[orientation] == 8:
+                image = image.rotate(90, expand=True)
+
+            image.save(resized_path)
+            image.close()
+
+
+def save_new_board(data, member_id) -> int:
     try:
-        new_notice = Board(
+        new_board = Board(
             brandName=data['brandName'],
-            memberID=data['memberID'],
+            memberID=member_id,
             title=data['title'],
             subTitle=data['subTitle'],
-            content=data['content'],
-            majorCategoryID=data['majorCategoryID'],
-            created=data['created']
+            content=data['content']
         )
-        save(new_notice)
-        return new_notice.ID
+        save(new_board)
+
+        if data['imageUrls']:
+            s3 = boto3.client('s3')
+            for i, image_url in enumerate(data['imageUrls']):
+                parts = urlparse(image_url)
+                filename = parts.path.split("/")[3]
+                temp_key = parts.path.lstrip("/")
+                download_path = f'/tmp/{filename}'
+                resized_path = f'/tmp/resized-{filename}'
+                upload_key = f'images/storage/board/{"{:%Y%m%d}".format(datetime.now())}/{filename}'
+
+                s3.download_file(S3_BUCKET, temp_key, download_path)
+                resize_image(download_path, resized_path)
+                s3.upload_file(resized_path, S3_BUCKET, upload_key, ExtraArgs={'ACL': 'public-read'})
+
+                cdn = ParseResult(
+                    scheme='https',
+                    netloc='d1cyiajrf0e1fn.cloudfront.net',
+                    path=f'/{upload_key}',
+                    params='',
+                    query='',
+                    fragment=''
+                )
+                logging.debug(cdn.geturl())
+                new_board_image = BoardImage(
+                    boardID=new_board.ID,
+                    imageNumber=i,
+                    imageUrl=cdn.geturl()
+                )
+                save(new_board_image)
+
+        if data['categoryIDs']:
+            for i, category_id in enumerate(data['categoryIDs']):
+                if category_id in [1, 2, 3, 4]:
+                    board = Board.query.filter(Board.ID == new_board.ID).one()
+                    board.majorCategoryID = category_id
+                    save(board)
+                else:
+                    category_scope = CategoryScope(
+                        categoryID=category_id,
+                        type=1,
+                        value=new_board.ID
+                    )
+                    save(category_scope)
+
+        return new_board.ID
+
     except Exception as e:
-        log.error(str(e))
+        logging.error(str(e))
+        db.session.rollback()
+        return 0
+
     finally:
         db.session.close()
 
@@ -30,6 +132,8 @@ def get_all_boards(page=1, per_page=200):
             SELECT COUNT(*) FROM Board
             """
         )).scalar()
+
+        offset = (page - 1) * per_page
 
         query = db.engine.execute(text(
             """
@@ -44,9 +148,9 @@ def get_all_boards(page=1, per_page=200):
                 IFNULL((SELECT c.name FROM Category AS c WHERE c.ID = b.majorCategoryID), null) AS majorCategoryName, 
                 b.created AS created 
             FROM Board AS b 
-            ORDER BY b.created DESC
-            LIMIT :per_page OFFSET :page
-            """), per_page=per_page, page=page
+            ORDER BY b.ID DESC
+            LIMIT :per_page OFFSET :offset
+            """), per_page=per_page, offset=offset
         )
 
         return {
@@ -57,7 +161,7 @@ def get_all_boards(page=1, per_page=200):
             'total': count
         }
     except Exception as e:
-        log.error(str(e))
+        logging.error(str(e))
     finally:
         db.session.close()
 
@@ -80,7 +184,7 @@ def get_by_board_id(notice_id) -> dict:
 
         return board
     except Exception as e:
-        log.error(str(e))
+        logging.error(str(e))
     finally:
         db.session.close()
 
@@ -89,9 +193,11 @@ def get_by_member_id(member_id, page=1, per_page=20) -> Board:
     try:
         count = db.engine.execute(text(
             """
-            SELECT COUNT(*) FROM Board
+            SELECT COUNT(*) FROM Board WHERE memberID = :member_id
             """
-        )).scalar()
+        ), member_id=member_id).scalar()
+
+        offset = (page - 1) * per_page
 
         boards = db.engine.execute(text(
             """
@@ -107,9 +213,9 @@ def get_by_member_id(member_id, page=1, per_page=20) -> Board:
                 b.created AS created 
             FROM Board AS b 
             WHERE b.memberID = :member_id
-            ORDER BY b.created DESC
-            LIMIT :per_page OFFSET :page
-            """), member_id=member_id, per_page=per_page, page=page
+            ORDER BY b.ID DESC
+            LIMIT :per_page OFFSET :offset
+            """), member_id=member_id, offset=offset, per_page=per_page
         ).all()
 
         return {
@@ -120,10 +226,9 @@ def get_by_member_id(member_id, page=1, per_page=20) -> Board:
             'total': count
         }
     except Exception as e:
-        log.error(str(e))
+        logging.error(str(e))
     finally:
         db.session.close()
-        pass
 
 
 def save(data):

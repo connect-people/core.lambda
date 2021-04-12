@@ -5,11 +5,14 @@ aws-wsgi==0.2.7
 boto3==1.17.39
 botocore==1.20.39
 certifi==2020.12.5
+cffi==1.14.5
 cfn-flip==1.2.3
 chardet==4.0.0
 click==7.1.2
 durationpy==0.5
 Flask==1.1.2
+Flask-Cors==3.0.10
+flask-paginate==0.8.1
 flask-restplus==0.13.0
 Flask-SQLAlchemy==2.5.1
 future==0.18.2
@@ -23,10 +26,15 @@ jsonschema==3.2.0
 kappa==0.6.0
 MarkupSafe==1.1.1
 mysql-connector-python==8.0.23
+mysqlclient==2.0.3
+packaging==20.9
 pep517==0.10.0
+Pillow @ file:///Users/ullee/Library/Mobile%20Documents/com~apple~CloudDocs/dev/cplab/cp.core.lambda/Pillow-8.0.1-cp38-cp38-macosx_11_0_arm64.whl
 pip-tools==6.0.1
 placebo==0.9.0
 protobuf==3.15.6
+pycparser==2.20
+pyparsing==2.4.7
 pyrsistent==0.17.3
 python-dateutil==2.8.1
 python-slugify==4.0.1

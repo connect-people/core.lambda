@@ -1,35 +1,31 @@
+import logging
+
 from flask import request
 from flask_restplus import Resource, reqparse
 
-from ..util.response import Response
 from ..util.dto import BoardDto
 from ..service.board_service import (
     save_new_board,
     get_all_boards,
     get_by_board_id,
-    get_by_member_id
+    get_by_member_id,
+    upload_image
 )
 from ..service.member_service import get_member_by_token
 
-import pprint
-import logging
-
 api = BoardDto.api
 _board = BoardDto.board
+_board_save = BoardDto.board_save
+_board_data = BoardDto.board_data
 _board_detail = BoardDto.board_detail
-
-resp = Response()
-
-pp = pprint.PrettyPrinter(indent=4)
-
 
 arguments = reqparse.RequestParser()
 arguments.add_argument('page', type=int, required=False, default=1, help='현재 페이지')
-arguments.add_argument('per_page', type=int, required=False, default=20, help='한 페이지에 보여질 갯수')
+arguments.add_argument('per_page', type=int, required=False, default=200, help='한 페이지에 보여질 갯수')
 
 
 @api.route('/')
-class BoardList(Resource):
+class Board(Resource):
     @api.doc('게시글 전체 리스트')
     # @api.marshal_list_with(_board, envelope='data')
     @api.expect(arguments)
@@ -43,16 +39,42 @@ class BoardList(Resource):
 
     @api.response(200, 'ok')
     @api.doc('게시판 등록')
-    @api.expect(_board, validate=True)
+    @api.header('token')
+    @api.expect(_board_save, validate=True)
     def post(self):
         """게시판 등록"""
+        token = request.headers.get('token')
         data = request.json
-        return save_new_board(data=data)
+
+        if not token or token == 'null':
+            api.abort(401, '로그인이 필요합니다')
+
+        member = get_member_by_token(token)
+        if not member:
+            api.abort(401, '회원정보를 찾을 수가 없습니다')
+
+        return save_new_board(data=data, member_id=member.id), 200
+
+
+@api.route('/images')
+class BoardImage(Resource):
+    @api.response(200, 'ok')
+    @api.response(401, 'file not exist')
+    @api.doc('이미지 임시 업로드')
+    def post(self):
+        """이미지 임시 업로드"""
+        file = request.files.get('tempFile')
+        if not file:
+            api.abort(401, 'file not exist')
+
+        return_url = upload_image(file)
+
+        return {'data': {'returnUrl': return_url}}, 200
 
 
 @api.route('/<int:board_id>')
 @api.param('board_id', 'board_id')
-class Notice(Resource):
+class BoardDetail(Resource):
     @api.doc('게시판 상세')
     @api.header('token')
     @api.response(200, 'ok')
@@ -68,6 +90,7 @@ class Notice(Resource):
                 raise Exception(401, '로그인이 필요합니다')
 
             if not get_member_by_token(token):
+                logging.debug(token)
                 raise Exception(404, '회원정보를 찾을 수가 없습니다')
 
             board = get_by_board_id(board_id)
@@ -75,18 +98,15 @@ class Notice(Resource):
             if not board:
                 raise Exception(403, '게시글을 찾을 수 없습니다')
 
-            resp.set_result(code=200, message='ok')
-            resp.set_contents(data=board)
+            return {'data': board}, 200
 
         except Exception as e:
-            resp.set_result(code=e.args[0], message=e.args[1])
-
-        finally:
-            return resp.send()
+            logging.error(e)
+            api.abort(e.args[0], e.args[1])
 
 
 @api.route('/me')
-class Notice(Resource):
+class MyBoard(Resource):
     @api.doc('내 작성글')
     @api.header('token')
     @api.response(200, 'ok')
@@ -109,8 +129,8 @@ class Notice(Resource):
             if not member:
                 raise Exception(404, '회원정보를 찾을 수가 없습니다')
 
-            print(member.id)
-            print(member.login_id)
+            logging.debug(token)
+            logging.debug(member.id)
 
             board = get_by_member_id(member.id, page, per_page)
 
@@ -121,3 +141,4 @@ class Notice(Resource):
 
         except Exception as e:
             logging.error(str(e))
+            api.abort(e.args[0], e.args[1])
