@@ -79,9 +79,12 @@ class BoardDto:
     board = api.inherit('board', pagination, {
         'items': fields.List(fields.Nested(board_data))
     })
-    board_detail = api.model('board_detail_data', {
-        # 'result': fields.Nested(result),
+    board_detail = api.model('board_detail', {
         'data': fields.Nested(board_detail_data)
+    })
+    board_search = api.inherit('board_search', pagination, {
+        'result': fields.Nested(result),
+        'data': fields.List(fields.Nested(board_data))
     })
 
 

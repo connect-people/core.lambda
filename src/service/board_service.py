@@ -33,30 +33,38 @@ def upload_image(file):
     return f'{S3_HOST}/{temp_path}'
 
 
-def resize_image(image_path, resized_path):
-    app_env = os.environ.get('APP_ENV')
-    if app_env == "local":
-        import PIL
-        with PIL.Image.open(image_path) as image:
-            image.thumbnail(tuple(x / 2 for x in image.size), PIL.Image.ANTIALIAS)
-            image.save(resized_path)
-    else:
-        from PIL import Image, ExifTags
-        with Image.open(image_path) as image:
-            image.thumbnail(tuple(x / 2 for x in image.size), Image.ANTIALIAS)
-            for orientation in ExifTags.TAGS.keys():
-                if ExifTags.TAGS[orientation] == 'Orientation':
-                    break
-            exif = image._getexif()
-            if exif[orientation] == 3:
-                image = image.rotate(180, expand=True)
-            elif exif[orientation] == 6:
-                image = image.rotate(270, expand=True)
-            elif exif[orientation] == 8:
-                image = image.rotate(90, expand=True)
+def resize_image(image_path, resized_path) -> bool:
+    try:
+        app_env = os.environ.get('APP_ENV')
+        if app_env == "local":
+            import PIL
+            with PIL.Image.open(image_path) as image:
+                image.thumbnail(tuple(x / 2 for x in image.size), PIL.Image.ANTIALIAS)
+                image.save(resized_path)
+        else:
+            from PIL import Image, ExifTags
+            with Image.open(image_path) as image:
+                image.thumbnail(tuple(x / 2 for x in image.size), Image.ANTIALIAS)
+                if ExifTags.TAGS.keys():
+                    for orientation in ExifTags.TAGS.keys():
+                        if ExifTags.TAGS[orientation] == 'Orientation':
+                            break
+                    exif = image._getexif()
+                    logging.debug(f'exif[orientation] : {exif[orientation]}')
+                    if exif[orientation] == 3:
+                        image = image.rotate(180, expand=True)
+                    elif exif[orientation] == 6:
+                        image = image.rotate(270, expand=True)
+                    elif exif[orientation] == 8:
+                        image = image.rotate(90, expand=True)
 
-            image.save(resized_path)
-            image.close()
+                image.save(resized_path)
+                image.close()
+        return True
+
+    except Exception as e:
+        logging.error(str(e))
+        return False
 
 
 def save_new_board(data, member_id) -> int:
@@ -81,8 +89,14 @@ def save_new_board(data, member_id) -> int:
                 upload_key = f'images/storage/board/{"{:%Y%m%d}".format(datetime.now())}/{filename}'
 
                 s3.download_file(S3_BUCKET, temp_key, download_path)
-                resize_image(download_path, resized_path)
-                s3.upload_file(resized_path, S3_BUCKET, upload_key, ExtraArgs={'ACL': 'public-read'})
+                logging.debug(f'temp image download complete. {download_path}')
+                if resize_image(download_path, resized_path) is False:
+                    logging.error(f'image resizing fail. {download_path}')
+                    s3.upload_file(download_path, S3_BUCKET, upload_key, ExtraArgs={'ACL': 'public-read'})
+                else:
+                    logging.debug(f'image resizing complete. {resized_path}')
+                    s3.upload_file(resized_path, S3_BUCKET, upload_key, ExtraArgs={'ACL': 'public-read'})
+                logging.debug(f's3 upload complete. {upload_key}')
 
                 cdn = ParseResult(
                     scheme='https',
@@ -216,6 +230,48 @@ def get_by_member_id(member_id, page=1, per_page=20) -> Board:
             ORDER BY b.ID DESC
             LIMIT :per_page OFFSET :offset
             """), member_id=member_id, offset=offset, per_page=per_page
+        ).all()
+
+        return {
+            'items': boards,
+            'page': page,
+            'pages': (count // per_page) + (1 if (count / per_page) > 0 else 0),
+            'per_page': per_page,
+            'total': count
+        }
+    except Exception as e:
+        logging.error(str(e))
+    finally:
+        db.session.close()
+
+
+def get_by_brand_name(brand_name, page=1, per_page=20) -> Board:
+    try:
+        count = db.engine.execute(text(
+            """
+            SELECT COUNT(*) FROM Board WHERE brandName LIKE :brand_name
+            """
+        ), brand_name=f'%{brand_name}%').scalar()
+
+        offset = (page - 1) * per_page
+
+        boards = db.engine.execute(text(
+            """
+            SELECT
+                b.ID AS ID, 
+                b.brandName AS brandName, 
+                b.memberID AS memberID, 
+                b.title AS title, 
+                b.subTitle AS subTitle, 
+                b.content AS content, 
+                IFNULL((SELECT bi.imageUrl FROM BoardImage bi WHERE bi.boardID = b.ID AND bi.imageNumber = 0 LIMIT 1), null) AS imageUrl,
+                IFNULL((SELECT c.name FROM Category AS c WHERE c.ID = b.majorCategoryID), null) AS majorCategoryName, 
+                b.created AS created 
+            FROM Board AS b 
+            WHERE b.brandName LIKE :brand_name
+            ORDER BY b.ID DESC
+            LIMIT :per_page OFFSET :offset
+            """), brand_name=f'%{brand_name}%', offset=offset, per_page=per_page
         ).all()
 
         return {

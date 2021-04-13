@@ -9,6 +9,7 @@ from ..service.board_service import (
     get_all_boards,
     get_by_board_id,
     get_by_member_id,
+    get_by_brand_name,
     upload_image
 )
 from ..service.member_service import get_member_by_token
@@ -18,6 +19,7 @@ _board = BoardDto.board
 _board_save = BoardDto.board_save
 _board_data = BoardDto.board_data
 _board_detail = BoardDto.board_detail
+_board_search = BoardDto.board_search
 
 arguments = reqparse.RequestParser()
 arguments.add_argument('page', type=int, required=False, default=1, help='현재 페이지')
@@ -142,3 +144,29 @@ class MyBoard(Resource):
         except Exception as e:
             logging.error(str(e))
             api.abort(e.args[0], e.args[1])
+
+
+@api.route('/search-brand')
+class Board(Resource):
+    @api.doc('브랜드 검색')
+    @api.expect(arguments)
+    @api.marshal_list_with(_board_search)
+    def post(self):
+        """브랜드 검색"""
+        args = arguments.parse_args(request)
+        page = args.get('page', 1)
+        per_page = args.get('per_page', 200)
+        token = request.headers.get('token')
+        data = request.json
+        boards = get_by_brand_name(data.get('keyword'), page, per_page)
+        return {
+            'result': {
+                'code': 1,
+                'message': 'ok'
+            },
+            'data': boards['items'],
+            'page': page,
+            'pages': boards['pages'],
+            'per_page': per_page,
+            'total': boards['total']
+        }, 200
