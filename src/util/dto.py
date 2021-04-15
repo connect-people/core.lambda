@@ -58,16 +58,16 @@ class BoardDto:
         'imageUrl': fields.String(required=True, description='이미지 URL'),
         'created': fields.String(requried=False, description='등록일')
     })
-    board_detail_data = api.model('board_detail_data', {
-        'ID': fields.Integer(required=True, description='ID'),
-        'brandName': fields.String(required=True, description='브랜드명'),
-        'memberID': fields.Integer(required=True, description='회원번호'),
-        'title': fields.String(required=True, description='타이틀'),
-        'subTitle': fields.String(required=True, description='서브타이틀'),
-        'content': fields.String(required=True, description='내용'),
-        'imageUrls': fields.List(fields.String),
-        'created': fields.String(requried=False, description='등록일')
-    })
+    # board_detail_data = api.model('board_detail_data', {
+    #     'ID': fields.Integer(required=True, description='ID'),
+    #     'brandName': fields.String(required=True, description='브랜드명'),
+    #     'memberID': fields.Integer(required=True, description='회원번호'),
+    #     'title': fields.String(required=True, description='타이틀'),
+    #     'subTitle': fields.String(required=True, description='서브타이틀'),
+    #     'content': fields.String(required=True, description='내용'),
+    #     'imageUrls': fields.List(fields.String),
+    #     'created': fields.String(requried=False, description='등록일')
+    # })
     board_save = api.model('board_save', {
         'brandName': fields.String(required=True, description='브랜드명'),
         'title': fields.String(required=True, description='타이틀'),
@@ -80,10 +80,22 @@ class BoardDto:
         'items': fields.List(fields.Nested(board_data))
     })
     board_detail = api.model('board_detail', {
-        'data': fields.Nested(board_detail_data)
+        'data': fields.Nested(
+            api.model('board_detail_data', {
+                'ID': fields.Integer(required=True, description='ID'),
+                'brandName': fields.String(required=True, description='브랜드명'),
+                'memberID': fields.Integer(required=True, description='회원번호'),
+                'title': fields.String(required=True, description='타이틀'),
+                'subTitle': fields.String(required=True, description='서브타이틀'),
+                'content': fields.String(required=True, description='내용'),
+                'imageUrls': fields.List(fields.String),
+                'created': fields.String(requried=False, description='등록일')
+            })
+        )
     })
-    board_search = api.inherit('board_search', pagination, {
+    board_search = api.model('board_search', {
         'result': fields.Nested(result),
+        'paging': fields.Nested(pagination),
         'data': fields.List(fields.Nested(board_data))
     })
 

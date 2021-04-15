@@ -17,13 +17,13 @@ from ..service.member_service import get_member_by_token
 api = BoardDto.api
 _board = BoardDto.board
 _board_save = BoardDto.board_save
-_board_data = BoardDto.board_data
 _board_detail = BoardDto.board_detail
 _board_search = BoardDto.board_search
 
 arguments = reqparse.RequestParser()
 arguments.add_argument('page', type=int, required=False, default=1, help='현재 페이지')
 arguments.add_argument('per_page', type=int, required=False, default=200, help='한 페이지에 보여질 갯수')
+arguments.add_argument('keyword', type=str, required=False, default=None, help='검색어')
 
 
 @api.route('/')
@@ -147,26 +147,28 @@ class MyBoard(Resource):
 
 
 @api.route('/search-brand')
-class Board(Resource):
+class BoardSearch(Resource):
     @api.doc('브랜드 검색')
     @api.expect(arguments)
     @api.marshal_list_with(_board_search)
-    def post(self):
+    def get(self):
         """브랜드 검색"""
         args = arguments.parse_args(request)
         page = args.get('page', 1)
         per_page = args.get('per_page', 200)
+        keyword = args.get('keyword', None)
         token = request.headers.get('token')
-        data = request.json
-        boards = get_by_brand_name(data.get('keyword'), page, per_page)
+        boards = get_by_brand_name(keyword, page, per_page)
         return {
             'result': {
                 'code': 1,
                 'message': 'ok'
             },
             'data': boards['items'],
-            'page': page,
-            'pages': boards['pages'],
-            'per_page': per_page,
-            'total': boards['total']
+            'paging': {
+                'page': page,
+                'pages': boards['pages'],
+                'per_page': per_page,
+                'total': boards['total']
+            }
         }, 200
