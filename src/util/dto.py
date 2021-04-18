@@ -98,6 +98,11 @@ class BoardDto:
         'paging': fields.Nested(pagination),
         'data': fields.List(fields.Nested(board_data))
     })
+    board_list = api.model('board_list', {
+        'result': fields.Nested(result),
+        'paging': fields.Nested(pagination),
+        'data': fields.List(fields.Nested(board_data))
+    })
 
 
 class MemberDto:

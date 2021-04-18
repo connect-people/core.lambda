@@ -16,6 +16,7 @@ from ..service.member_service import get_member_by_token
 
 api = BoardDto.api
 _board = BoardDto.board
+_board_list = BoardDto.board_list
 _board_save = BoardDto.board_save
 _board_detail = BoardDto.board_detail
 _board_search = BoardDto.board_search
@@ -56,6 +57,32 @@ class Board(Resource):
             api.abort(401, '회원정보를 찾을 수가 없습니다')
 
         return save_new_board(data=data, member_id=member.id), 200
+
+
+@api.route('/list')
+class BoardList(Resource):
+    @api.doc('게시글 전체 리스트')
+    @api.expect(arguments)
+    @api.marshal_list_with(_board_list)
+    def get(self):
+        """게시판 전체 리스트 v2"""
+        args = arguments.parse_args(request)
+        page = args.get('page', 1)
+        per_page = args.get('per_page', 200)
+        boards = get_all_boards(page, per_page)
+        return {
+            'result': {
+                'code': 1,
+                'message': 'ok'
+            },
+            'data': boards['items'],
+            'paging': {
+                'page': page,
+                'pages': boards['pages'],
+                'per_page': per_page,
+                'total': boards['total']
+            }
+        }, 200
 
 
 @api.route('/images')
