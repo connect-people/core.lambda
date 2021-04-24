@@ -137,3 +137,35 @@ class MemberDto:
         'data': fields.Nested(data)
     })
 
+
+class CategoryDto:
+    api = Namespace('category', description='카테고리')
+    result = api.model('result', {
+        'code': fields.Integer(description='code'),
+        'message': fields.String(description='message'),
+    })
+    major_category = api.model('major_category', {
+        'result': fields.Nested(result),
+        'data': fields.List(fields.Nested(
+            api.model('major', {
+                'major_id': fields.Integer(required=True, description='id'),
+                'major_label': fields.String(required=True, description='대 카테고리명'),
+            })
+        ))
+    })
+    minor_category = api.model('minor', {
+        'id': fields.Integer(required=True, description='id'),
+        'label': fields.String(required=True, description='중 카테고리명')
+    })
+    medium_category_data = api.model('medium_category_data', {
+        'id': fields.Integer(required=True, description='id'),
+        'label': fields.String(required=True, description='중 카테고리명'),
+        'minor': fields.List(fields.Nested(minor_category))
+    })
+    medium_category = api.model('medium1', {
+        'medium': fields.List(fields.Nested(medium_category_data))
+    })
+    category = api.model('medium_category', {
+        'result': fields.Nested(result),
+        'data': fields.Nested(medium_category)
+    })
